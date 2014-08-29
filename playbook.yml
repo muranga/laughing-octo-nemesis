@@ -1,0 +1,28 @@
+- handlers:
+  - {name: restart nginx, service: name=nginx state=restarted}
+  - {name: restart uwsgi, service: name=uwsgi state=restarted}
+  hosts: all
+  sudo: true
+  tasks:
+  - {apt: update_cache=yes cache_valid_time=3600}
+  - apt: pkg={{item}} state=latest
+    name: ensure packages installed
+    with_items: [python-apt, python-pycurl]
+  - {apt_repository: 'repo=ppa:chris-lea/uwsgi'}
+  - apt: pkg={{item}} state=latest
+    with_items: [nginx, uwsgi, python-dev, python-pip, postgresql, postgresql-contrib,
+      libpq-dev, libxml2-dev, libxslt1-dev, nginx, uwsgi, uwsgi-plugin-python]
+  - {user: 'name={{name}} generate_ssh_key=yes ssh_key_bits=2048'}
+  - {file: 'name=/home/{{name}}/env state=directory'}
+  - {copy: 'src=src dest=/home/{{name}}/'}
+  - pip: name={{item}} state=present
+    with_items: [virtualenv]
+  - {pip: 'requirements=/home/{{name}}/src/requirements.txt virtualenv=/home/{{name}}/env'}
+  - {template: 'src=conf/uwsgi.conf.j2 dest=/etc/uwsgi/apps-available/{{name}}.ini'}
+  - {file: 'src=/etc/uwsgi/apps-available/{{name}}.ini dest=/etc/uwsgi/apps-enabled/{{name}}.ini
+      state=link', notify: restart uwsgi}
+  - {file: path=/etc/nginx/sites-enabled/default state=absent}
+  - {template: 'src=conf/nginx.conf.j2 dest=/etc/nginx/sites-available/{{name}}.conf'}
+  - {file: 'src=/etc/nginx/sites-available/{{name}}.conf dest=/etc/nginx/sites-enabled/{{name}}.conf
+      state=link', notify: restart nginx}
+  vars_files: [vars.yml]

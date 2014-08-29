@@ -1,0 +1,10 @@
+[uwsgi]
+socket = /tmp/uwsgi.sock
+plugins=python
+chmod-socket    = 666
+master = true
+processes = 1
+env = DJANGO_SETTINGS_MODULE=ansiapp.settings
+module = django.core.handlers.wsgi:WSGIHandler()
+home=/home/{{name}}/env
+chdir=/home/{{name}}/src
